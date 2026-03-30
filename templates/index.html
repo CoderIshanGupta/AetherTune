@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AetherTune</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+        <!-- LOGO -->
+        <img src="/static/logo.png" class="sidebar-logo">
+
+        <button class="login-btn" onclick="login()">Connect Spotify</button>
+
+        <div class="menu">
+            <p class="menu-title">Activity</p>
+
+            <button onclick="setActivity(0)">📚 Study</button>
+            <button onclick="setActivity(1)">🚗 Drive</button>
+            <button onclick="setActivity(2)">🧘 Meditate</button>
+            <button onclick="setActivity(3)">🏋️ Workout</button>
+        </div>
+
+        <input type="number" id="age" placeholder="Enter age">
+
+    </div>
+
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- HEADER -->
+        <div class="header">
+            <h1>Welcome 👋</h1>
+            <p>Find the perfect track for your current vibe</p>
+        </div>
+
+        <!-- PLAYER -->
+        <div id="player-card" class="card hidden">
+
+            <img id="cover" class="cover">
+
+            <h2 id="track-name"></h2>
+            <p id="artist" class="artist"></p>
+
+            <a id="spotify-link" target="_blank">
+                <button class="spotify-btn">Open in Spotify</button>
+            </a>
+
+            <div id="status-area"></div>
+
+            <!-- FEEDBACK -->
+            <div class="feedback">
+                <button onclick="sendFeedback(true)">👍</button>
+                <button onclick="sendFeedback(false)">👎</button>
+            </div>
+
+            <div id="recommend-area"></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+let selectedActivity = 0;
+let lastTrackName = null;
+
+function login() {
+    window.location.href = "/login";
+}
+
+function setActivity(activity) {
+    selectedActivity = activity;
+    predict();
+}
+
+async function predict() {
+
+    const age = document.getElementById("age").value;
+
+    if (!age) {
+        alert("Please enter age");
+        return;
+    }
+
+    const response = await fetch(`/predict?activity=${selectedActivity}&age=${age}`);
+    const data = await response.json();
+
+    displayResult(data);
+}
+
+function displayResult(data) {
+
+    if (!data.Current_Track) return;
+
+    const track = data.Current_Track;
+
+    document.getElementById("player-card").classList.remove("hidden");
+
+    document.getElementById("cover").src = track.cover;
+    document.getElementById("track-name").innerText = track.name;
+    document.getElementById("artist").innerText = track.artist;
+    document.getElementById("spotify-link").href = track.spotify_url;
+
+    const statusArea = document.getElementById("status-area");
+
+    if (data.message) {
+        statusArea.innerHTML = `<p class="status good">${data.message}</p>`;
+    }
+
+    if (data.ALERT) {
+        statusArea.innerHTML = `<p class="status bad">${data.ALERT}</p>`;
+    }
+
+    const recArea = document.getElementById("recommend-area");
+    recArea.innerHTML = "";
+
+    if (data.Recommended_Tracks && data.Recommended_Tracks.length > 0) {
+
+        recArea.innerHTML = `<h3 class="rec-title">Recommended Tracks</h3>`;
+
+        data.Recommended_Tracks.forEach(track => {
+            recArea.innerHTML += `
+                <div class="embed-card">
+                    <iframe
+                        src="https://open.spotify.com/embed/track/${track.id}"
+                        width="100%"
+                        height="80"
+                        frameborder="0"
+                        allow="encrypted-media">
+                    </iframe>
+                </div>
+            `;
+        });
+    }
+
+    lastTrackName = track.name;
+}
+
+async function sendFeedback(liked) {
+
+    const age = document.getElementById("age").value;
+
+    await fetch(`/feedback?age=${age}&activity=${selectedActivity}&liked=${liked}`, {
+        method: "POST"
+    });
+
+    predict();
+}
+
+// AUTO REFRESH
+setInterval(() => {
+    if (document.getElementById("age").value) {
+        predict();
+    }
+}, 5000);
+
+</script>
+
+</body>
+</html>
