@@ -134,7 +134,7 @@ exercising → energy > 0.7  AND tempo > 120
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/AetherTune.git
+git clone https://github.com/CoderIshanGupta/AetherTune.git
 cd AetherTune
 ```
 
